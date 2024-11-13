@@ -57,40 +57,38 @@ const omega = 2;
  * Calcular la acelaración máxima del terreno (a0)
  * @description Corresponde a la aceleración máxima cuando T = 0
  * @param {number} a0 Isoaceleración
- * @param {string} grupo Grupo al que pertenece la estructura
  * @return {number}
  */
-export function correcionA0(a0, grupo) {
-  if (grupo === "a") {
-    return a0 * 1.5;
-  }
-
-  return a0;
+export function correcionA0(a0) {
+  return a0 * 1.5;
 }
 
 /**
- * Calcular la amplificación por tipo de suelo (S)
+ * Obtener Factor de Amplificación por Tipo de Suelo (S), tabla de valores dados
  * @param {string} zona Zona sismica
  * @param {string} suelo Tipo de suelo
- * @return {number}
+ * @return {number | undefined}
  */
 export function S(zona, suelo) {
-  // NOTE para suelos de tipo IV es necesario realizar espectros de diseño de sitio especificio
-  let S = 0;
+  // NOTE para suelos de tipo IV es necesario realizar espectros de diseño de sitio específico
+  let S;
+  const zonaMinus = zona.toLowerCase();
+
   switch (suelo) {
     case ("III"):
-      if (zona === "A") S = 2.4;
-      if (zona === "B") S = 2.2;
-      if (zona === "C") S = 2.0;
+      if (zonaMinus === "a") S = 2.4;
+      if (zonaMinus === "b") S = 2.2;
+      if (zonaMinus === "c") S = 2.0;
       break;
     case ("II"):
-      if (zona === "A") S = 1.8;
-      if (zona === "B") S = 1.7;
-      if (zona === "C") S = 1.5;
+      if (zonaMinus === "a") S = 1.8;
+      if (zonaMinus === "b") S = 1.7;
+      if (zonaMinus === "c") S = 1.5;
       break;
-    // Para suelos tipo I el valor de S siempre es 1, no importa la zona sísmica
+    case ("I"):
+      if (zonaMinus === "a" || zonaMinus === "b" || zonaMinus === "c") S = 1;
+      break;
     default:
-      S = 1;
       break;
   }
 
@@ -131,57 +129,55 @@ export function d(a0) {
 }
 
 /**
- * Calcular la reducción del espectro para el punto dado
+ * Calcular Aceleración para Diseño Sísmico (a), para T < Ta
+ * @param {number} S Amplificación por tipo de suelo
+ * @param {number} a0 Aceleración máxima del terreno
+ * @param {number} d
+ * @param {number} T Periodo estrucutral
+ * @return {number}
+ */
+export function aParaTMenorTa(S, a0, d, T) {
+  return S * (a0 + (d - a0) * (T / Ta));
+}
+
+/**
+ * Calcular Aceleración para Diseño Sísmico (a), para Ta <= T <= Tb
+ * @param {number} S Amplificación por tipo de suelo
+ * @param {number} d
+ * @return {number}
+ */
+export function aParaTMayorTaMenorTb(S, d) {
+  return S * d;
+}
+
+/**
+ * Calcular Aceleración para Diseño Sísmico (a), para Tb <= T <= Tc
+ * @param {number} S Amplificación por tipo de suelo
+ * @param {number} d
+ * @param {number} T Periodo estructural
+ * @return {number}
+ */
+export function aParaTMayorTbMenorTc(S, d, T) {
+  return S * d * (Tb / T);
+}
+
+/**
+ * Calcular Aceleración para Diseño Sísmico (a), para Tc < T
+ * @param {number} S Amplificación por tipo de suelo
+ * @param {number} d
+ * @param {number} T Periodo estructural
+ * @return {number}
+ */
+export function aParaTMayorTc(S, d, T) {
+  return S * d * (Tb / Tc) * (Tc / T) ** 2;
+}
+
+/**
+ * Calcular la reducción del espectro para el valor de "a" dado
  * @param {number} val Valor del espectro elástico para el punto (T) actual
  * @param {number} Q1 Factor de reducción por comportamiento dúctil de una estructura
  * @return {number}
  */
-function reducirValorActual(val, Q1) {
+export function reducirValorA(val, Q1) {
   return val / (Q1 * omega);
-}
-
-/**
- * @typedef {object} ValorEspectro
- * @property {number} T
- * @property {number} a
- */
-
-/**
- * Generador de espectros de diseño
- * @param {number} a0 Acelación máxima del terreno
- * @param {number} S Amplificación por tipo de suelo
- * @param {number} d
- * @param {number} Q1Corregido Corrección por irregularidad
- * @param {number} periodo Los segundos para los que cuales se
- * @param {number} intervalo La cantidad de calculos que se realizaran por segundo (T)
- * @return {{elastico: ValorEspectro[], reducido: ValorEspectro[]}}
- */
-export function generarEspectro(a0, S, d, Q1Corregido, periodo, intervalo) {
-  const muestra = periodo * intervalo;
-  /** @type ValorEspectro[] */
-  const elastico = new Array(muestra);
-  /** @type ValorEspectro[] */
-  const reducido = new Array(muestra);
-  for (let i = 0; i <= muestra; i++) {
-    let res = 0;
-    const T = i / intervalo;
-
-    if (T < Ta) {
-      res = S * (a0 + (d - a0) * (T / Ta));
-    } else if (Ta <= T && T <= Tb) {
-      res = S * d;
-    } else if (Tb <= T && T <= Tc) {
-      res = S * d * (Tb / T);
-    } else {
-      res = S * d * (Tb / Tc) * (Tc / T) ** 2;
-    }
-
-    elastico[i] = { T, a: res };
-    reducido[i] = {
-      T,
-      a: reducirValorActual(res, Q1Corregido),
-    };
-  }
-
-  return { elastico, reducido };
 }
