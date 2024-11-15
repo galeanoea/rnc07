@@ -10,7 +10,7 @@ Deno.test("Calcular correcionA0, igual a valor calculado en js", () => {
   assertEquals(correccionA0Real, correccionA0Espereado);
 });
 
-Deno.test("Probar correcionA0, casi igual a valor calculado a mano con tolerancia de 0000000", () => {
+Deno.test("Probar correcionA0, casi igual a valor calculado a mano con tolerancia de 0.000001%", () => {
   const a0 = 0.1;
 
   const correccionA0Espereado = 0.15;
@@ -75,7 +75,7 @@ Deno.test("Calcular d, igual a valor calculado en js", () => {
   assertEquals(dReal, dEsperada);
 });
 
-Deno.test("Calcular d, casi igual a valor calculado a mano con tolerancia de 0000000", () => {
+Deno.test("Calcular d, casi igual a valor calculado a mano con tolerancia de 0.000001%", () => {
   const a0 = 0.1;
 
   const dEsperada = 0.27;
@@ -184,7 +184,7 @@ Deno.test(
 );
 
 Deno.test(
-  'Calcular "a" para diferentes valores de T, casi igual que valor calculado a mano con tolerancia 000000',
+  'Calcular "a" para diferentes valores de T, casi igual que valor calculado a mano con tolerancia 0.000001%',
   async (t) => {
     const S = 1;
     const a0 = 0.31;
